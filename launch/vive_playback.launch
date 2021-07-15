@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="mode"            default="play" />
+    <arg name="bag_file"        value="vive_input.bag" />
+    <arg name="input_topic"     value="/vive_input/raw_string" />
+    <arg name="out_port"        value="8081" />
+
+    <node pkg="playback_mimicry" type="vive_playback.py" name="vive_playback" output="screen"
+        args="$(arg mode)">
+        <param name="bag_file"  value="$(find playback_mimicry)/recordings/$(arg bag_file)" />
+        <param name="input_topic"  value="$(arg input_topic)" />
+        <param name="out_port"  value="$(arg out_port)" />        
+    </node>
+</launch>
