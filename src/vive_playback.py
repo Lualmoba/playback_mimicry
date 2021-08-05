@@ -18,9 +18,9 @@ class Args:
         self.input_topic = input_topic
         self.out_port = out_port
         self.mode = mode
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.bag = None
-        self.socket = None
         self.topic_sub = None
 
 
@@ -70,20 +70,15 @@ def publishViveInput(args: Args):
         print("ERROR: Could not open .bag file:", bag_name)
         return
 
-    try:
-        args.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        args.socket.connect(('', args.out_port))
-    except:
-        print("ERROR: Unable to connect to socket.")
-        if args.socket is not None:
-            args.socket.close()
-        return
-
     # start = time.time()
 
+    address = ('', args.out_port)
     prev_tstamp = None
     prev_real = None
     for topic, msg, tstamp in args.bag.read_messages(args.input_topic):
+        if rospy.is_shutdown():
+            break
+        
         if prev_tstamp is None:
             prev_real = time.time()
             prev_tstamp = tstamp
@@ -98,7 +93,7 @@ def publishViveInput(args: Args):
         prev_real = time.time()
         prev_tstamp = tstamp
 
-        args.socket.send(msg.data.encode('utf-8'))
+        args.socket.sendto(msg.data.encode('utf-8'), address)
         print(msg.data)
         
 
@@ -122,8 +117,9 @@ def initRecordingSubscriber(args: Args):
     
     bag_file = Path(args.bag_file)
     if bag_file.is_file():
-        response = input(".bag file already exists. Would you like to clear it? ")
-        response = response.strip().lower()
+        response = None
+        while response != "yes" and response != "y" and response != "no" and response != "n":
+            response = input(".bag file already exists. Would you like to clear it? ").strip().lower()
         if response == "yes" or response == "y":
             print("File cleared. Now recording...")
             args.bag = rosbag.Bag(args.bag_file, 'w')
